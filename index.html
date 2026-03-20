@@ -547,7 +547,7 @@
       const grid = document.getElementById('reviewsGrid');
       grid.innerHTML = '<div class="no-reviews">Loading reviews...</div>';
       try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/reviews?order=created_at.desc`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/reviews?order=id.desc`, {
           headers: {
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -561,7 +561,7 @@
         grid.innerHTML = reviews.map(r => {
           const stars = '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars);
           const initials = r.name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-          const date = new Date(r.created_at).toLocaleDateString('en-IN', {month:'short', year:'numeric'});
+          const date = r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN', {month:'short', year:'numeric'}) : new Date().toLocaleDateString('en-IN', {month:'short', year:'numeric'});
           return `<div class="review-card">
             <div class="review-stars">${stars}</div>
             <div class="review-text">${r.text}</div>
@@ -569,7 +569,7 @@
               <div class="review-avatar">${initials}</div>
               <div>
                 <div class="review-name">${r.name}</div>
-                <div class="review-date">${r.project} · ${date}</div>
+                <div class="review-date">${r.project}</div>
               </div>
             </div>
           </div>`;
