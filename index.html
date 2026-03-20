@@ -236,7 +236,7 @@
       </p>
       <div class="hero-stats">
         <div class="stat-item">
-          <div class="stat-num">10<span>+</span></div>
+          <div class="stat-num">35<span>+</span></div>
           <div class="stat-label">Projects Done</div>
         </div>
         <div class="stat-item">
@@ -520,60 +520,88 @@
       });
     });
 
-    // Reviews storage
-    const STORAGE_KEY='rey_portfolio_reviews';
-    function getReviews(){
-      try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}
-      catch{return[];}
-    }
-    function saveReviews(reviews){
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(reviews));
-    }
-    function renderReviews(){
-      const reviews=getReviews();
-      const grid=document.getElementById('reviewsGrid');
-      if(!reviews.length){
-        grid.innerHTML='<div class="no-reviews">No reviews yet — be the first to leave one ↓</div>';
-        return;
-      }
-      grid.innerHTML=reviews.map(r=>{
-        const stars='★'.repeat(r.stars)+'☆'.repeat(5-r.stars);
-        const initials=r.name.trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-        return `<div class="review-card">
-          <div class="review-stars">${stars}</div>
-          <div class="review-text">${r.text}</div>
-          <div class="review-author">
-            <div class="review-avatar">${initials}</div>
-            <div>
-              <div class="review-name">${r.name}</div>
-              <div class="review-date">${r.project} · ${r.date}</div>
+    // Supabase config
+    const SUPABASE_URL = 'https://wxgaftswkkevfkejicct.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4Z2FmdHN3a2tldmZrZWppY2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5OTk2ODksImV4cCI6MjA4OTU3NTY4OX0.T3hRjOEGMP9g-t4re-9OvBuyPCoDK7FkdiKJUecuXB8';
+
+    async function fetchReviews() {
+      const grid = document.getElementById('reviewsGrid');
+      grid.innerHTML = '<div class="no-reviews">Loading reviews...</div>';
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/reviews?order=created_at.desc`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        const reviews = await res.json();
+        if (!reviews.length) {
+          grid.innerHTML = '<div class="no-reviews">No reviews yet — be the first to leave one ↓</div>';
+          return;
+        }
+        grid.innerHTML = reviews.map(r => {
+          const stars = '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars);
+          const initials = r.name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+          const date = new Date(r.created_at).toLocaleDateString('en-IN', {month:'short', year:'numeric'});
+          return `<div class="review-card">
+            <div class="review-stars">${stars}</div>
+            <div class="review-text">${r.text}</div>
+            <div class="review-author">
+              <div class="review-avatar">${initials}</div>
+              <div>
+                <div class="review-name">${r.name}</div>
+                <div class="review-date">${r.project} · ${date}</div>
+              </div>
             </div>
-          </div>
-        </div>`;
-      }).join('');
+          </div>`;
+        }).join('');
+      } catch(e) {
+        grid.innerHTML = '<div class="no-reviews">Could not load reviews.</div>';
+      }
     }
-    renderReviews();
+    fetchReviews();
 
     // Submit review
-    document.getElementById('submitReview').addEventListener('click',()=>{
-      const name=document.getElementById('reviewName').value.trim();
-      const project=document.getElementById('reviewProject').value.trim();
-      const text=document.getElementById('reviewText').value.trim();
-      const msg=document.getElementById('formMsg');
-      if(!name||!text){msg.textContent='Please fill in your name and review.';msg.className='form-msg error';return;}
-      if(!selectedStars){msg.textContent='Please select a star rating.';msg.className='form-msg error';return;}
-      const reviews=getReviews();
-      reviews.unshift({name,project:project||'Client',text,stars:selectedStars,date:new Date().toLocaleDateString('en-IN',{month:'short',year:'numeric'})});
-      saveReviews(reviews);
-      renderReviews();
-      document.getElementById('reviewName').value='';
-      document.getElementById('reviewProject').value='';
-      document.getElementById('reviewText').value='';
-      selectedStars=0;
-      starBtns.forEach(b=>b.classList.remove('active'));
-      msg.textContent='✓ Review posted! Thank you.';
-      msg.className='form-msg success';
-      setTimeout(()=>msg.textContent='',3000);
+    document.getElementById('submitReview').addEventListener('click', async () => {
+      const name = document.getElementById('reviewName').value.trim();
+      const project = document.getElementById('reviewProject').value.trim();
+      const text = document.getElementById('reviewText').value.trim();
+      const msg = document.getElementById('formMsg');
+      if (!name || !text) { msg.textContent = 'Please fill in your name and review.'; msg.className = 'form-msg error'; return; }
+      if (!selectedStars) { msg.textContent = 'Please select a star rating.'; msg.className = 'form-msg error'; return; }
+      const btn = document.getElementById('submitReview');
+      btn.disabled = true; btn.textContent = 'POSTING...';
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/reviews`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ name, project: project || 'Client', text, stars: selectedStars })
+        });
+        if (res.ok) {
+          document.getElementById('reviewName').value = '';
+          document.getElementById('reviewProject').value = '';
+          document.getElementById('reviewText').value = '';
+          selectedStars = 0;
+          starBtns.forEach(b => b.classList.remove('active'));
+          msg.textContent = '✓ Review posted! Thank you.';
+          msg.className = 'form-msg success';
+          setTimeout(() => msg.textContent = '', 3000);
+          fetchReviews();
+        } else {
+          const err = await res.json();
+          msg.textContent = 'Error: ' + (err.message || 'Could not post review.');
+          msg.className = 'form-msg error';
+        }
+      } catch(e) {
+        msg.textContent = 'Network error. Please try again.';
+        msg.className = 'form-msg error';
+      }
+      btn.disabled = false; btn.textContent = 'POST REVIEW';
     });
   </script>
 </body>
