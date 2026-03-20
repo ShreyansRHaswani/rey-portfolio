@@ -472,8 +472,27 @@
       <span class="stroke">PROJECT?</span>
     </h2>
     <div class="contact-links reveal">
-      <a href="/cdn-cgi/l/email-protection#6d1f0814000c06081e080904191e2d0a000c0401430e0200" class="contact-link primary">✉ Drop a Mail</a>
       <a href="https://www.instagram.com/reymakesedits?igsh=MXJlcWJ0YmRwM3g4" target="_blank" class="contact-link secondary">↗ Instagram</a>
+    </div>
+    <div class="reveal" style="max-width:600px;margin:0 auto 60px;text-align:left;background:var(--surface);border:1px solid var(--border);padding:48px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(to right,var(--accent),var(--accent2));"></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;margin-bottom:28px;">SEND A MESSAGE</div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="form-field">
+          <label>Your Name</label>
+          <input type="text" id="contactName" placeholder="e.g. Arjun S."/>
+        </div>
+        <div class="form-field">
+          <label>Your Email</label>
+          <input type="email" id="contactEmail" placeholder="you@email.com"/>
+        </div>
+        <div class="form-field">
+          <label>Message</label>
+          <textarea id="contactMessage" style="height:140px;resize:none;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:14px 18px;font-family:'Barlow',sans-serif;font-size:15px;outline:none;width:100%;" placeholder="Tell me about your project..."></textarea>
+        </div>
+        <button class="submit-btn" id="contactSubmit" style="width:100%;">✉ SEND MESSAGE</button>
+        <div class="form-msg" id="contactMsg"></div>
+      </div>
     </div>
   </section>
 
@@ -603,6 +622,42 @@
       }
       btn.disabled = false; btn.textContent = 'POST REVIEW';
     });
-  </script>
+  
+    // Contact form
+    document.getElementById('contactSubmit').addEventListener('click', async () => {
+      const name = document.getElementById('contactName').value.trim();
+      const email = document.getElementById('contactEmail').value.trim();
+      const message = document.getElementById('contactMessage').value.trim();
+      const msg = document.getElementById('contactMsg');
+      if (!name || !email || !message) {
+        msg.textContent = 'Please fill in all fields.';
+        msg.className = 'form-msg error';
+        return;
+      }
+      const btn = document.getElementById('contactSubmit');
+      btn.disabled = true; btn.textContent = 'SENDING...';
+      try {
+        const res = await fetch('https://formspree.io/f/xvzwyzyp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ name, email, message })
+        });
+        if (res.ok) {
+          msg.textContent = '✓ Message sent! Rey will get back to you soon.';
+          msg.className = 'form-msg success';
+          document.getElementById('contactName').value = '';
+          document.getElementById('contactEmail').value = '';
+          document.getElementById('contactMessage').value = '';
+        } else {
+          msg.textContent = 'Something went wrong. Try again!';
+          msg.className = 'form-msg error';
+        }
+      } catch(e) {
+        msg.textContent = 'Network error. Please try again.';
+        msg.className = 'form-msg error';
+      }
+      btn.disabled = false; btn.textContent = '✉ SEND MESSAGE';
+    });
+</script>
 </body>
 </html>
